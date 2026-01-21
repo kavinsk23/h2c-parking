@@ -1,1 +1,53 @@
 @import "tailwindcss";
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Teal Color Palette */
+  --color-primary: #14b8a6; /* Main teal */
+  --color-primary-dark: #0f766e; /* Dark teal for text */
+  --color-primary-light: #ccfbf1; /* Very light teal for backgrounds */
+  --color-primary-hover: #5eead4; /* Light teal for hover states */
+
+  --color-background: #f9fafb; /* Off-white background */
+  --color-surface: #ffffff; /* Pure white for cards */
+
+  --color-text: #111827; /* Dark gray for primary text */
+  --color-text-muted: #6b7280; /* Medium gray for secondary text */
+
+  --color-border: #e5e7eb; /* Light gray for borders */
+  --color-border-focus: #5eead4; /* Light teal for focus states */
+
+  --color-success: #10b981; /* Green for success/available */
+  --color-warning: #f59e0b; /* Amber for warnings */
+  --color-danger: #ef4444; /* Red for errors */
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+button:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+}
