@@ -5,6 +5,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { UserDashboard } from "./pages/UserDashboard";
 import { AdminDashboard } from "./pages/AdminDashboard";
+import { ManageUsers } from "./components/ManageUsers";
 
 function App() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -51,6 +52,16 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Add this new route for Manage Users */}
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <ManageUsers />
                 </ProtectedRoute>
               }
             />
