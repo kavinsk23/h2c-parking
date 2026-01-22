@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: "user" | "admin";
+  vehicleType: "Long" | "Short";
 }
 
 let gapiInitialized = false;
@@ -43,7 +44,7 @@ export const loadUsers = async (accessToken: string): Promise<User[]> => {
     await initGapi(accessToken);
     const response = await window.gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Users!A2:D",
+      range: "Users!A2:E",
     });
     const rows = response.result.values || [];
     return rows.map((row: string[]) => ({
@@ -51,6 +52,7 @@ export const loadUsers = async (accessToken: string): Promise<User[]> => {
       name: row[1] || "",
       email: row[2] || "",
       role: (row[3] || "user") as "user" | "admin",
+      vehicleType: (row[4] || "Short") as "Long" | "Short",
     }));
   } catch (error) {
     console.error("Error loading users:", error);
@@ -66,9 +68,11 @@ export const saveToSheet = async (
     await initGapi(accessToken);
     await window.gapi.client.sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Users!A:D",
+      range: "Users!A:E",
       valueInputOption: "USER_ENTERED",
-      resource: { values: [[user.id, user.name, user.email, user.role]] },
+      resource: {
+        values: [[user.id, user.name, user.email, user.role, user.vehicleType]],
+      },
     });
   } catch (error) {
     console.error("Error saving user:", error);
@@ -98,15 +102,15 @@ export const updateInSheet = async (
     }
 
     // Convert to 1-based row number for A1 notation
-    // rowIndex is 0-based where 0 = header row
-    // So actual data row number = rowIndex + 1
     const sheetRow = rowIndex + 1;
 
     await window.gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `Users!A${sheetRow}:D${sheetRow}`,
+      range: `Users!A${sheetRow}:E${sheetRow}`,
       valueInputOption: "USER_ENTERED",
-      resource: { values: [[user.id, user.name, user.email, user.role]] },
+      resource: {
+        values: [[user.id, user.name, user.email, user.role, user.vehicleType]],
+      },
     });
   } catch (error) {
     console.error("Error updating user:", error);
@@ -157,8 +161,6 @@ export const deleteFromSheet = async (
     }
 
     // For batchUpdate deleteDimension, use 0-based row indices
-    // rowIndex is already 0-based where 0 = header
-    // So we use rowIndex directly as startIndex
     await window.gapi.client.sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       resource: {

@@ -13,6 +13,7 @@ interface User {
   name: string;
   email: string;
   role: "user" | "admin";
+  vehicleType: "Long" | "Short";
 }
 
 export const ManageUsers = () => {
@@ -22,9 +23,11 @@ export const ManageUsers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
+    id: "",
     name: "",
     email: "",
     role: "user" as "user" | "admin",
+    vehicleType: "Short" as "Long" | "Short",
   });
 
   useEffect(() => {
@@ -44,20 +47,35 @@ export const ManageUsers = () => {
       return;
     }
 
-    if (!formData.name || !formData.email) {
+    if (!formData.id || !formData.name || !formData.email) {
       alert("Please fill in all fields");
+      return;
+    }
+
+    // Check if ID already exists
+    if (users.some((user) => user.id === formData.id)) {
+      alert("User ID already exists. Please use a unique ID.");
       return;
     }
 
     try {
       const newUser: User = {
-        id: Date.now().toString(),
-        ...formData,
+        id: formData.id,
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        vehicleType: formData.vehicleType,
       };
       await saveToSheet(newUser, accessToken);
       setUsers([...users, newUser]);
       setShowAddModal(false);
-      setFormData({ name: "", email: "", role: "user" });
+      setFormData({
+        id: "",
+        name: "",
+        email: "",
+        role: "user",
+        vehicleType: "Short",
+      });
     } catch (error) {
       console.error("Error adding user:", error);
       alert("Failed to add user. Please try again.");
@@ -67,14 +85,31 @@ export const ManageUsers = () => {
   const handleEditUser = async () => {
     if (!accessToken || !editingUser) return;
 
+    if (!formData.name || !formData.email) {
+      alert("Please fill in all fields");
+      return;
+    }
+
     try {
-      const updatedUser = { ...editingUser, ...formData };
+      const updatedUser: User = {
+        id: editingUser.id, // Keep the original ID
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        vehicleType: formData.vehicleType,
+      };
       await updateInSheet(updatedUser, accessToken);
       setUsers(
         users.map((user) => (user.id === editingUser.id ? updatedUser : user)),
       );
       setEditingUser(null);
-      setFormData({ name: "", email: "", role: "user" });
+      setFormData({
+        id: "",
+        name: "",
+        email: "",
+        role: "user",
+        vehicleType: "Short",
+      });
     } catch (error) {
       console.error("Error updating user:", error);
       alert("Failed to update user. Please try again.");
@@ -98,16 +133,24 @@ export const ManageUsers = () => {
   const openEditModal = (user: User) => {
     setEditingUser(user);
     setFormData({
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      vehicleType: user.vehicleType,
     });
   };
 
   const closeModal = () => {
     setShowAddModal(false);
     setEditingUser(null);
-    setFormData({ name: "", email: "", role: "user" });
+    setFormData({
+      id: "",
+      name: "",
+      email: "",
+      role: "user",
+      vehicleType: "Short",
+    });
   };
 
   return (
@@ -197,6 +240,9 @@ export const ManageUsers = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Role
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                    Vehicle Type
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                     Actions
                   </th>
@@ -227,6 +273,17 @@ export const ManageUsers = () => {
                         }`}
                       >
                         {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded ${
+                          user.vehicleType === "Long"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-purple-100 text-purple-700"
+                        }`}
+                      >
+                        {user.vehicleType}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -267,6 +324,24 @@ export const ManageUsers = () => {
             </div>
 
             <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ID
+                </label>
+                <input
+                  type="text"
+                  value={formData.id}
+                  onChange={(e) =>
+                    setFormData({ ...formData, id: e.target.value })
+                  }
+                  disabled={!!editingUser}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                    editingUser ? "bg-gray-100 cursor-not-allowed" : ""
+                  }`}
+                  placeholder="Enter ID"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Name
@@ -313,6 +388,25 @@ export const ManageUsers = () => {
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vehicle Type
+                </label>
+                <select
+                  value={formData.vehicleType}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      vehicleType: e.target.value as "Long" | "Short",
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="Short">Short</option>
+                  <option value="Long">Long</option>
                 </select>
               </div>
             </div>
