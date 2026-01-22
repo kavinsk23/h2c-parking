@@ -35,7 +35,6 @@ export const AllocateParking = () => {
     if (!accessToken) return;
     setLoading(true);
     try {
-      // Initialize schedule sheet if needed
       await initializeScheduleSheet(accessToken);
 
       const [usersData, scheduleData] = await Promise.all([
@@ -44,7 +43,6 @@ export const AllocateParking = () => {
       ]);
       setUsers(usersData);
 
-      // If schedule is empty, initialize with default slots
       if (scheduleData.length === 0) {
         const defaultSchedule = initializeDefaultSchedule();
         setSchedule(defaultSchedule);
@@ -89,7 +87,6 @@ export const AllocateParking = () => {
       const user = users.find((u) => u.id === userId);
       if (!user) return;
 
-      // Check if user's vehicle type matches slot type
       if (user.vehicleType === "Long" && slot.slotType === "Short") {
         alert("Long vehicles cannot be assigned to Short slots!");
         return;
@@ -98,7 +95,6 @@ export const AllocateParking = () => {
       slot.userId = userId;
       slot.userName = user.name;
     } else {
-      // Deallocate
       slot.userId = null;
       slot.userName = null;
     }
@@ -120,7 +116,6 @@ export const AllocateParking = () => {
     const slot =
       type === "office" ? daySchedule.office[index] : daySchedule.temple[index];
 
-    // If changing to Short and a Long vehicle is assigned, remove the assignment
     if (slotType === "Short" && slot.userId) {
       const user = users.find((u) => u.id === slot.userId);
       if (user?.vehicleType === "Long") {
@@ -153,10 +148,8 @@ export const AllocateParking = () => {
 
   const getAvailableUsersForSlot = (slot: ParkingSlot): User[] => {
     if (slot.slotType === "Short") {
-      // Short slots can accommodate both Short and Long vehicles
       return users;
     } else {
-      // Long slots can only accommodate Long vehicles
       return users.filter((u) => u.vehicleType === "Long");
     }
   };
@@ -189,7 +182,7 @@ export const AllocateParking = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-[1600px] mx-auto px-6 py-3">
           <div className="flex justify-between items-center">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -237,58 +230,152 @@ export const AllocateParking = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Day Selector */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-center">
+      <main className="max-w-[1600px] mx-auto px-6 py-6">
+        {/* Day Selector & Stats */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-4">
+          <div className="flex justify-between items-center mb-3">
             <div className="flex gap-2">
-              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(
-                (day) => (
-                  <button
-                    key={day}
-                    onClick={() => setSelectedDay(day)}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
-                      selectedDay === day
-                        ? "bg-teal-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {day}
-                  </button>
-                ),
-              )}
+              {[
+                { day: "Monday", color: "blue" },
+                { day: "Tuesday", color: "purple" },
+                { day: "Wednesday", color: "teal" },
+                { day: "Thursday", color: "orange" },
+                { day: "Friday", color: "green" },
+              ].map(({ day, color }) => (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(day)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+                    selectedDay === day
+                      ? color === "blue"
+                        ? "bg-blue-600 text-white shadow-md ring-2 ring-blue-300"
+                        : color === "purple"
+                          ? "bg-purple-600 text-white shadow-md ring-2 ring-purple-300"
+                          : color === "teal"
+                            ? "bg-teal-600 text-white shadow-md ring-2 ring-teal-300"
+                            : color === "orange"
+                              ? "bg-orange-600 text-white shadow-md ring-2 ring-orange-300"
+                              : "bg-green-600 text-white shadow-md ring-2 ring-green-300"
+                      : color === "blue"
+                        ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                        : color === "purple"
+                          ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                          : color === "teal"
+                            ? "bg-teal-100 text-teal-700 hover:bg-teal-200"
+                            : color === "orange"
+                              ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                              : "bg-green-100 text-green-700 hover:bg-green-200"
+                  }`}
+                >
+                  {day}
+                </button>
+              ))}
             </div>
             <button
               onClick={handleSaveSchedule}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="px-5 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed shadow-sm"
             >
               {loading ? "Saving..." : "Save Schedule"}
             </button>
           </div>
+
+          {/* Quick Stats */}
+          <div className="flex gap-4 pt-3 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-teal-500"></div>
+              <span className="text-xs text-gray-600">
+                Office:{" "}
+                {currentDaySchedule?.office.filter((s) => s.userId).length || 0}
+                /12 allocated
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+              <span className="text-xs text-gray-600">
+                Temple:{" "}
+                {currentDaySchedule?.temple.filter((s) => s.userId).length || 0}
+                /6 allocated
+              </span>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-gray-600">
+                Total:{" "}
+                {(currentDaySchedule?.office.filter((s) => s.userId).length ||
+                  0) +
+                  (currentDaySchedule?.temple.filter((s) => s.userId).length ||
+                    0)}
+                /18 slots used
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Office Parking */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Office Parking (12 Slots)
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {currentDaySchedule?.office.map((slot, index) => (
-              <div
-                key={index}
-                className="border border-gray-300 rounded-lg p-4 hover:border-teal-500 transition cursor-pointer"
-                onClick={() => handleSlotClick("office", index)}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-sm font-semibold text-gray-900">
-                    {slot.slotName}
-                  </span>
-                  <div className="flex gap-2">
-                    <label
-                      className="flex items-center text-xs cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+        {/* Parking Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Office Parking - Takes 2 columns */}
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold text-gray-900">
+                Office Parking
+              </h2>
+              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                12 slots
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1.5">
+              {currentDaySchedule?.office.map((slot, index) => (
+                <div
+                  key={index}
+                  className={`border rounded-md p-1.5 hover:border-teal-500 transition cursor-pointer ${
+                    slot.userId
+                      ? "border-teal-300 bg-teal-50"
+                      : "border-gray-300 bg-white"
+                  }`}
+                  onClick={() => handleSlotClick("office", index)}
+                >
+                  <div className="flex justify-between items-start gap-1 mb-1">
+                    {/* Left: Slot Name & Type */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-gray-900">
+                        {slot.slotName}
+                      </span>
+                      <span
+                        className={`text-[9px] px-1 py-0.5 rounded font-medium inline-block w-fit mt-0.5 ${
+                          slot.slotType === "Long"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-purple-100 text-purple-700"
+                        }`}
+                      >
+                        {slot.slotType}
+                      </span>
+                    </div>
+
+                    {/* Right: User Info */}
+                    <div className="flex-1 min-w-0">
+                      {slot.userId ? (
+                        <div className="text-right">
+                          <p className="text-[10px] font-medium text-teal-900 truncate">
+                            {slot.userName}
+                          </p>
+                          <p className="text-[9px] text-teal-600">
+                            {slot.userId}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-[9px] text-gray-500 text-right">
+                          Available
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom: Slot Type Toggle */}
+                  <div
+                    className="flex gap-1 pt-1 border-t border-gray-200"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <label className="flex items-center text-[9px] cursor-pointer flex-1">
                       <input
                         type="radio"
                         name={`office-${index}-type`}
@@ -296,14 +383,11 @@ export const AllocateParking = () => {
                         onChange={() =>
                           handleSlotTypeChange("office", index, "Short")
                         }
-                        className="mr-1"
+                        className="mr-0.5 w-2 h-2"
                       />
                       Short
                     </label>
-                    <label
-                      className="flex items-center text-xs cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <label className="flex items-center text-[9px] cursor-pointer flex-1">
                       <input
                         type="radio"
                         name={`office-${index}-type`}
@@ -311,53 +395,79 @@ export const AllocateParking = () => {
                         onChange={() =>
                           handleSlotTypeChange("office", index, "Long")
                         }
-                        className="mr-1"
+                        className="mr-0.5 w-2 h-2"
                       />
                       Long
                     </label>
                   </div>
                 </div>
-
-                <div className="text-sm">
-                  {slot.userId ? (
-                    <div className="bg-teal-50 border border-teal-200 rounded p-2">
-                      <p className="font-medium text-teal-900">
-                        {slot.userName}
-                      </p>
-                      <p className="text-xs text-teal-600">ID: {slot.userId}</p>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 border border-gray-200 rounded p-2 text-center text-gray-500">
-                      Available
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Temple Parking */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Temple Parking (6 Slots)
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {currentDaySchedule?.temple.map((slot, index) => (
-              <div
-                key={index}
-                className="border border-gray-300 rounded-lg p-4 hover:border-teal-500 transition cursor-pointer"
-                onClick={() => handleSlotClick("temple", index)}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-sm font-semibold text-gray-900">
-                    {slot.slotName}
-                  </span>
-                  <div className="flex gap-2">
-                    <label
-                      className="flex items-center text-xs cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+          {/* Temple Parking - Takes 1 column */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold text-gray-900">
+                Temple Parking
+              </h2>
+              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                6 slots
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-1.5">
+              {currentDaySchedule?.temple.map((slot, index) => (
+                <div
+                  key={index}
+                  className={`border rounded-md p-1.5 hover:border-teal-500 transition cursor-pointer ${
+                    slot.userId
+                      ? "border-teal-300 bg-teal-50"
+                      : "border-gray-300 bg-white"
+                  }`}
+                  onClick={() => handleSlotClick("temple", index)}
+                >
+                  <div className="flex justify-between items-start gap-1 mb-1">
+                    {/* Left: Slot Name & Type */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-gray-900">
+                        {slot.slotName}
+                      </span>
+                      <span
+                        className={`text-[9px] px-1 py-0.5 rounded font-medium inline-block w-fit mt-0.5 ${
+                          slot.slotType === "Long"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-purple-100 text-purple-700"
+                        }`}
+                      >
+                        {slot.slotType}
+                      </span>
+                    </div>
+
+                    {/* Right: User Info */}
+                    <div className="flex-1 min-w-0">
+                      {slot.userId ? (
+                        <div className="text-right">
+                          <p className="text-[10px] font-medium text-teal-900 truncate">
+                            {slot.userName}
+                          </p>
+                          <p className="text-[9px] text-teal-600">
+                            {slot.userId}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-[9px] text-gray-500 text-right">
+                          Available
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom: Slot Type Toggle */}
+                  <div
+                    className="flex gap-1 pt-1 border-t border-gray-200"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <label className="flex items-center text-[9px] cursor-pointer flex-1">
                       <input
                         type="radio"
                         name={`temple-${index}-type`}
@@ -365,14 +475,11 @@ export const AllocateParking = () => {
                         onChange={() =>
                           handleSlotTypeChange("temple", index, "Short")
                         }
-                        className="mr-1"
+                        className="mr-0.5 w-2 h-2"
                       />
                       Short
                     </label>
-                    <label
-                      className="flex items-center text-xs cursor-pointer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <label className="flex items-center text-[9px] cursor-pointer flex-1">
                       <input
                         type="radio"
                         name={`temple-${index}-type`}
@@ -380,29 +487,14 @@ export const AllocateParking = () => {
                         onChange={() =>
                           handleSlotTypeChange("temple", index, "Long")
                         }
-                        className="mr-1"
+                        className="mr-0.5 w-2 h-2"
                       />
                       Long
                     </label>
                   </div>
                 </div>
-
-                <div className="text-sm">
-                  {slot.userId ? (
-                    <div className="bg-teal-50 border border-teal-200 rounded p-2">
-                      <p className="font-medium text-teal-900">
-                        {slot.userName}
-                      </p>
-                      <p className="text-xs text-teal-600">ID: {slot.userId}</p>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 border border-gray-200 rounded p-2 text-center text-gray-500">
-                      Available
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </main>
