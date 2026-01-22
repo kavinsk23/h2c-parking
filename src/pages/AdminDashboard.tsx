@@ -67,7 +67,7 @@ export const AdminDashboard = () => {
 
         {/* Menu Options */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Update this button to use Link */}
+          {/* Manage Users */}
           <Link
             to="/admin/users"
             className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm hover:shadow-md transition text-left block"
@@ -80,14 +80,18 @@ export const AdminDashboard = () => {
             </p>
           </Link>
 
-          <button className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm hover:shadow-md transition text-left">
+          {/* Allocate Parking */}
+          <Link
+            to="/admin/allocate-parking"
+            className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm hover:shadow-md transition text-left block"
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
               Allocate Parking
             </h3>
             <p className="text-sm text-gray-600">
               Assign parking spaces to users
             </p>
-          </button>
+          </Link>
         </div>
       </main>
     </div>

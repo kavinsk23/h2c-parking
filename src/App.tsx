@@ -6,6 +6,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { UserDashboard } from "./pages/UserDashboard";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { ManageUsers } from "./components/ManageUsers";
+import { AllocateParking } from "./components/AllocateParking";
 
 function App() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -56,12 +57,22 @@ function App() {
               }
             />
 
-            {/* Add this new route for Manage Users */}
+            {/* Manage Users Route */}
             <Route
               path="/admin/users"
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <ManageUsers />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Allocate Parking Route */}
+            <Route
+              path="/admin/allocate-parking"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AllocateParking />
                 </ProtectedRoute>
               }
             />
