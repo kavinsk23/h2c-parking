@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
+import {
+  loadUsers,
+  saveToSheet,
+  updateInSheet,
+  deleteFromSheet,
+} from "../services/Googlesheetsservice";
 
 interface User {
   id: string;
@@ -10,29 +16,9 @@ interface User {
 }
 
 export const ManageUsers = () => {
-  const { user: currentUser, logout } = useAuth();
+  const { user: currentUser, logout, accessToken } = useAuth();
 
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john@example.com",
-      role: "user",
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      role: "user",
-    },
-    {
-      id: "3",
-      name: "Bob Johnson",
-      email: "bob@example.com",
-      role: "admin",
-    },
-  ]);
-
+  const [users, setUsers] = useState<User[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -41,36 +27,71 @@ export const ManageUsers = () => {
     role: "user" as "user" | "admin",
   });
 
+  useEffect(() => {
+    if (accessToken) {
+      loadUsers(accessToken).then(setUsers);
+    }
+  }, [accessToken]);
+
   const handleLogout = () => {
     logout();
     window.location.href = "/login";
   };
 
-  const handleAddUser = () => {
-    const newUser: User = {
-      id: Date.now().toString(),
-      ...formData,
-    };
-    setUsers([...users, newUser]);
-    setShowAddModal(false);
-    setFormData({ name: "", email: "", role: "user" });
-  };
+  const handleAddUser = async () => {
+    if (!accessToken) {
+      alert("Authentication in progress. Please wait a moment and try again.");
+      return;
+    }
 
-  const handleEditUser = () => {
-    if (editingUser) {
-      setUsers(
-        users.map((user) =>
-          user.id === editingUser.id ? { ...editingUser, ...formData } : user,
-        ),
-      );
-      setEditingUser(null);
+    if (!formData.name || !formData.email) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    try {
+      const newUser: User = {
+        id: Date.now().toString(),
+        ...formData,
+      };
+      await saveToSheet(newUser, accessToken);
+      setUsers([...users, newUser]);
+      setShowAddModal(false);
       setFormData({ name: "", email: "", role: "user" });
+    } catch (error) {
+      console.error("Error adding user:", error);
+      alert("Failed to add user. Please try again.");
     }
   };
 
-  const handleDeleteUser = (id: string) => {
+  const handleEditUser = async () => {
+    if (!accessToken || !editingUser) return;
+
+    try {
+      const updatedUser = { ...editingUser, ...formData };
+      await updateInSheet(updatedUser, accessToken);
+      setUsers(
+        users.map((user) => (user.id === editingUser.id ? updatedUser : user)),
+      );
+      setEditingUser(null);
+      setFormData({ name: "", email: "", role: "user" });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      alert("Failed to update user. Please try again.");
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!accessToken) return;
+
     if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsers(users.filter((user) => user.id !== id));
+      try {
+        await deleteFromSheet(id, accessToken);
+        setUsers(users.filter((user) => user.id !== id));
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        alert("Failed to delete user. Please try again.");
+      }
     }
   };
 
@@ -226,6 +247,11 @@ export const ManageUsers = () => {
                 ))}
               </tbody>
             </table>
+            {users.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                No users found.
+              </div>
+            )}
           </div>
         </div>
       </main>

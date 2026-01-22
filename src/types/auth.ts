@@ -14,6 +14,7 @@ export interface AuthContextType {
   login: (credential: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  accessToken: string | null;
 }
 
 export interface GoogleCredentialResponse {

@@ -26,55 +26,91 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for stored user session on mount
     const storedUser = localStorage.getItem("user");
     const googleToken = localStorage.getItem("googleToken");
+    const storedAccessToken = localStorage.getItem("accessToken");
 
     if (storedUser && googleToken) {
       try {
         const decoded: DecodedToken = jwtDecode(googleToken);
 
-        // Check if token is expired
         if (decoded.exp * 1000 > Date.now()) {
           const parsedUser = JSON.parse(storedUser) as User;
           setUser(parsedUser);
+
+          if (storedAccessToken) {
+            setAccessToken(storedAccessToken);
+          }
         } else {
-          // Token expired, clear storage
           localStorage.removeItem("user");
           localStorage.removeItem("googleToken");
+          localStorage.removeItem("accessToken");
         }
       } catch (error) {
         console.error("Invalid token:", error);
         localStorage.removeItem("user");
         localStorage.removeItem("googleToken");
+        localStorage.removeItem("accessToken");
       }
     }
     setLoading(false);
   }, []);
 
+  // Auto-request access token when user logs in
+  useEffect(() => {
+    if (user && !accessToken) {
+      const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+      const initTokenClient = () => {
+        if (window.google?.accounts?.oauth2) {
+          const client = window.google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: "https://www.googleapis.com/auth/spreadsheets",
+            callback: (tokenResponse) => {
+              console.log("Access token received");
+              setAccessToken(tokenResponse.access_token);
+              localStorage.setItem("accessToken", tokenResponse.access_token);
+            },
+          });
+          // Request token immediately
+          client.requestAccessToken();
+        }
+      };
+
+      if (window.google?.accounts?.oauth2) {
+        initTokenClient();
+      } else {
+        const checkGoogle = setInterval(() => {
+          if (window.google?.accounts?.oauth2) {
+            clearInterval(checkGoogle);
+            initTokenClient();
+          }
+        }, 100);
+
+        setTimeout(() => clearInterval(checkGoogle), 5000);
+      }
+    }
+  }, [user, accessToken]);
+
   const login = async (credential: string): Promise<void> => {
     try {
       setLoading(true);
 
-      // Decode the Google JWT token
       const decoded: DecodedToken = jwtDecode(credential);
 
-      // Verify token is not expired
       if (decoded.exp * 1000 < Date.now()) {
         throw new Error("Token expired");
       }
 
-      // Verify email is verified
       if (!decoded.email_verified) {
         throw new Error("Email not verified");
       }
 
-      // Determine user role based on email
       const role = getUserRole(decoded.email);
 
-      // Create user object
       const userData: User = {
         id: decoded.sub,
         email: decoded.email,
@@ -84,7 +120,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         googleId: decoded.sub,
       };
 
-      // Save to state and localStorage
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("googleToken", credential);
@@ -100,8 +135,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = () => {
     setUser(null);
+    setAccessToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("googleToken");
+    localStorage.removeItem("accessToken");
   };
 
   const value: AuthContextType = {
@@ -111,6 +148,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     login,
     logout,
     loading,
+    accessToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
