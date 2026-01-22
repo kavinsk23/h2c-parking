@@ -82,20 +82,29 @@ export const updateInSheet = async (
 ): Promise<void> => {
   try {
     await initGapi(accessToken);
+
+    // Get all IDs from column A (including header)
     const response = await window.gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Users!A:A",
     });
     const rows = response.result.values || [];
+
+    // Find the row index (0-based, includes header at index 0)
     const rowIndex = rows.findIndex((row: string[]) => row[0] === user.id);
 
     if (rowIndex === -1) {
       throw new Error("User not found");
     }
 
+    // Convert to 1-based row number for A1 notation
+    // rowIndex is 0-based where 0 = header row
+    // So actual data row number = rowIndex + 1
+    const sheetRow = rowIndex + 1;
+
     await window.gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
-      range: `Users!A${rowIndex + 2}:D${rowIndex + 2}`,
+      range: `Users!A${sheetRow}:D${sheetRow}`,
       valueInputOption: "USER_ENTERED",
       resource: { values: [[user.id, user.name, user.email, user.role]] },
     });
@@ -111,17 +120,45 @@ export const deleteFromSheet = async (
 ): Promise<void> => {
   try {
     await initGapi(accessToken);
+
+    // Get the sheet metadata to find the correct sheetId
+    const sheetMetadata = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    const sheetData = await sheetMetadata.json();
+    const usersSheet = sheetData.sheets?.find(
+      (sheet: any) => sheet.properties?.title === "Users",
+    );
+
+    if (!usersSheet?.properties?.sheetId) {
+      throw new Error("Users sheet not found");
+    }
+
+    const sheetId = usersSheet.properties.sheetId;
+
+    // Get all IDs from column A (including header)
     const response = await window.gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Users!A:A",
     });
     const rows = response.result.values || [];
+
+    // Find the row index (0-based, includes header at index 0)
     const rowIndex = rows.findIndex((row: string[]) => row[0] === userId);
 
     if (rowIndex === -1) {
       throw new Error("User not found");
     }
 
+    // For batchUpdate deleteDimension, use 0-based row indices
+    // rowIndex is already 0-based where 0 = header
+    // So we use rowIndex directly as startIndex
     await window.gapi.client.sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
       resource: {
@@ -129,10 +166,10 @@ export const deleteFromSheet = async (
           {
             deleteDimension: {
               range: {
-                sheetId: 0,
+                sheetId: sheetId,
                 dimension: "ROWS",
-                startIndex: rowIndex + 1,
-                endIndex: rowIndex + 2,
+                startIndex: rowIndex,
+                endIndex: rowIndex + 1,
               },
             },
           },
